@@ -219,6 +219,15 @@
     margin-top:20px; background:white; border-radius:14px; padding:16px 20px; font-size:0.92rem;
     color:var(--ink-soft); line-height:1.55; border-left:5px solid var(--brand); display:none;
   }
+  .pattern-progress{
+    font-family:'Space Mono',monospace; font-size:0.75rem; font-weight:700; color:var(--brand-dark);
+    text-align:center; margin-bottom:16px; letter-spacing:0.05em; text-transform:uppercase;
+  }
+  .pattern-next{ display:flex; justify-content:center; margin-top:18px; }
+  .pattern-result{ text-align:center; }
+  .pattern-result .medal{ font-size:3rem; }
+  .pattern-result h3{ font-size:1.4rem; margin:10px 0 6px; }
+  .pattern-result p{ color:var(--ink-soft); margin-bottom:18px; }
 
   /* ---------- ALGORITHM BUILDER ---------- */
   .algo-card{
@@ -396,11 +405,11 @@
         <div class="center-label"><b>Tap a stop!</b></div>
       </div>
       <div class="detail-card" id="detailCard">
-        <span class="stage-tag" id="stageTag">Stage 1 of 4</span>
-        <h3 id="stageTitle">Evaporation</h3>
-        <p id="stageText">The sun heats up water in oceans, lakes and rivers. The heat energy turns liquid water into water vapor — an invisible gas — that rises into the sky.</p>
-        <div class="fun-fact" id="stageFact">🤓 Fun fact: Even puddles and wet laundry evaporate! Plants release water vapor too, in a process called <em>transpiration</em>.</div>
-        <p class="stage-hint">👆 Tap the other three stops to keep exploring.</p>
+        <span class="stage-tag" id="stageTag" style="background:#eef4f8;color:var(--ink-soft);">Waiting…</span>
+        <h3 id="stageTitle">Tap a stop on the loop</h3>
+        <p id="stageText">Choose Evaporation, Condensation, Precipitation, or Collection on the diagram to see what's happening to the water at that stage.</p>
+        <div class="fun-fact" id="stageFact" style="display:none;"></div>
+        <p class="stage-hint">👆 Tap any of the four stops to begin exploring.</p>
       </div>
     </div>
   </div>
@@ -414,23 +423,7 @@
       <h2>Spot the pattern in the loop</h2>
       <p>Programmers look for repeating patterns so they can write a <em>loop</em> instead of repeating the same code forever. Can you find the pattern below?</p>
     </div>
-    <div class="pattern-card">
-      <div class="seq">
-        <span>☀️</span><span>☁️</span><span>🌧️</span><span>🏞️</span>
-        <span>☀️</span><span>☁️</span><span>🌧️</span><span>🏞️</span>
-        <div class="qmark" id="qmark">?</div>
-      </div>
-      <div class="pattern-options" id="patternOpts">
-        <button class="opt-btn" data-val="rain">🌧️</button>
-        <button class="opt-btn" data-val="sun">☀️</button>
-        <button class="opt-btn" data-val="river">🏞️</button>
-        <button class="opt-btn" data-val="snow">❄️</button>
-      </div>
-      <div class="pattern-feedback" id="patternFeedback"></div>
-      <div class="pattern-explain" id="patternExplain">
-        You found it! The symbols repeat every 4 steps: Sun → Cloud → Rain → River, then it starts again. In programming, we'd call this a <b>loop that repeats forever</b> — exactly how the real water cycle behaves. Nature doesn't stop at "Collection" — it goes straight back to "Evaporation" and runs again and again.
-      </div>
-    </div>
+    <div class="pattern-card" id="patternCard"></div>
   </div>
 </section>
 
@@ -552,34 +545,108 @@ function showStage(key){
   stageTitle.textContent = s.name;
   stageTitle.style.color = s.dark;
   stageText.textContent = s.text;
+  stageFact.style.display = 'block';
   stageFact.innerHTML = s.fact;
   nodes.forEach(n => n.classList.toggle('active', n.dataset.stage === key));
 }
 nodes.forEach(n => n.addEventListener('click', () => showStage(n.dataset.stage)));
-showStage('evap');
+/* No stage is shown until the learner taps one — see the neutral "Waiting…" state in the HTML. */
 
 /* ===================== PATTERN RECOGNITION ===================== */
-const patternOpts = document.getElementById('patternOpts');
-const patternFeedback = document.getElementById('patternFeedback');
-const patternExplain = document.getElementById('patternExplain');
-let patternAnswered = false;
-
-patternOpts.addEventListener('click', (e) => {
-  const btn = e.target.closest('.opt-btn');
-  if(!btn || patternAnswered) return;
-  patternAnswered = true;
-  const correct = btn.dataset.val === 'sun';
-  btn.classList.add(correct ? 'correct' : 'wrong');
-  if(correct){
-    patternFeedback.textContent = "🎉 Correct! The pattern loops back to Sun ☀️.";
-    patternFeedback.style.color = "#215f36";
-  } else {
-    patternFeedback.textContent = "Not quite — the pattern restarts at ☀️ Sun. That's ok, patterns take practice!";
-    patternFeedback.style.color = "#c0392b";
-    [...patternOpts.children].find(b => b.dataset.val === 'sun').classList.add('correct');
+const patternData = [
+  {
+    seq:["☀️","☁️","🌧️","🏞️","☀️","☁️","🌧️","🏞️"],
+    opts:["🌧️","☀️","🏞️","❄️"],
+    correct:"☀️",
+    explain:"The symbols repeat every 4 steps: Sun → Cloud → Rain → River, then it starts again. That's exactly what a <b>loop</b> does in a program — it repeats the same steps over and over."
+  },
+  {
+    seq:["☁️","🌧️","🏞️","☀️","☁️","🌧️","🏞️"],
+    opts:["☁️","🏞️","☀️","🌧️"],
+    correct:"☀️",
+    explain:"It doesn't matter where you start counting — the order Sun → Cloud → Rain → River never changes. A reliable, repeating order is what makes something a true pattern."
+  },
+  {
+    seq:["🏞️","☀️","☁️","🌧️","🏞️","☀️","☁️","🌧️"],
+    opts:["☀️","🌧️","🏞️","☁️"],
+    correct:"🏞️",
+    explain:"Even starting from Collection, the same 4-step order repeats. Programmers use this kind of predictability to write a loop instead of typing the same instructions again and again."
   }
-  patternExplain.style.display = 'block';
-});
+];
+let patIndex = 0;
+let patScore = 0;
+const patternCard = document.getElementById('patternCard');
+
+function renderPattern(){
+  if(patIndex >= patternData.length){
+    renderPatternResult();
+    return;
+  }
+  const item = patternData[patIndex];
+  patternCard.innerHTML = `
+    <div class="pattern-progress">Question ${patIndex+1} of ${patternData.length}</div>
+    <div class="seq">
+      ${item.seq.map(s => `<span>${s}</span>`).join('')}
+      <div class="qmark">?</div>
+    </div>
+    <div class="pattern-options" id="patternOpts">
+      ${item.opts.map(o => `<button class="opt-btn" data-val="${o}">${o}</button>`).join('')}
+    </div>
+    <div class="pattern-feedback" id="patternFeedback"></div>
+    <div class="pattern-explain" id="patternExplain">${item.explain}</div>
+  `;
+  const patternOpts = document.getElementById('patternOpts');
+  const patternFeedback = document.getElementById('patternFeedback');
+  const patternExplain = document.getElementById('patternExplain');
+  let answered = false;
+
+  patternOpts.addEventListener('click', (e) => {
+    const btn = e.target.closest('.opt-btn');
+    if(!btn || answered) return;
+    answered = true;
+    const correct = btn.dataset.val === item.correct;
+    btn.classList.add(correct ? 'correct' : 'wrong');
+    if(correct){
+      patScore++;
+      patternFeedback.textContent = "🎉 Correct!";
+      patternFeedback.style.color = "#215f36";
+    } else {
+      patternFeedback.textContent = `Not quite — the answer was ${item.correct}. That's ok, patterns take practice!`;
+      patternFeedback.style.color = "#c0392b";
+      [...patternOpts.children].find(b => b.dataset.val === item.correct).classList.add('correct');
+    }
+    patternExplain.style.display = 'block';
+    [...patternOpts.children].forEach(b => b.disabled = true);
+
+    const nextRow = document.createElement('div');
+    nextRow.className = 'pattern-next';
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-primary';
+    nextBtn.textContent = (patIndex === patternData.length - 1) ? 'See Result →' : 'Next Question →';
+    nextBtn.addEventListener('click', () => { patIndex++; renderPattern(); });
+    nextRow.appendChild(nextBtn);
+    patternCard.appendChild(nextRow);
+  });
+}
+
+function renderPatternResult(){
+  let medal = "🥉", msg = "Keep practicing — spotting patterns gets easier the more you look!";
+  if(patScore === patternData.length){ medal = "🥇"; msg = "Perfect! You spotted every repeating pattern like a true computational thinker."; }
+  else if(patScore >= Math.ceil(patternData.length/2)){ medal = "🥈"; msg = "Nice work! You found most of the patterns."; }
+  patternCard.innerHTML = `
+    <div class="pattern-result">
+      <div class="medal">${medal}</div>
+      <h3>${patScore} / ${patternData.length} correct</h3>
+      <p>${msg}</p>
+      <button class="btn btn-ghost" id="retryPattern">🔁 Try Again</button>
+    </div>
+  `;
+  document.getElementById('retryPattern').addEventListener('click', () => {
+    patIndex = 0; patScore = 0; renderPattern();
+  });
+}
+
+renderPattern();
 
 /* ===================== ALGORITHM BUILDER ===================== */
 const order = ['evap','cond','precip','collect'];
