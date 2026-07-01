@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaLoop — The Water Cycle, Thought Like a Computer Scientist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#eaf7ff;
+    --sky-bot:#d3edff;
+    --ink:#16324a;
+    --ink-soft:#4a6072;
+    --cream:#fffdf7;
+    --brand:#1b98e0;
+    --brand-dark:#0e6fa8;
+    --coral:#ff6b6b;
+    --coral-dark:#e14d4d;
+
+    --evap:#ffb400;
+    --evap-soft:#fff2cf;
+    --cond:#2ec4b6;
+    --cond-soft:#d6f7f3;
+    --precip:#5b6ee1;
+    --precip-soft:#e2e5fb;
+    --collect:#3da35d;
+    --collect-soft:#dcf3e3;
+
+    --radius-lg:28px;
+    --radius-md:18px;
+    --shadow:0 10px 30px rgba(22,50,74,0.12);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    font-family:'Nunito',sans-serif;
+    color:var(--ink);
+    background:linear-gradient(180deg,var(--sky-top) 0%, var(--sky-bot) 45%, #f4fbff 100%);
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.display{ font-family:'Baloo 2',cursive; }
+  .eyebrow{
+    font-family:'Space Mono',monospace;
+    text-transform:uppercase;
+    letter-spacing:0.14em;
+    font-size:0.72rem;
+    font-weight:700;
+    color:var(--brand-dark);
+  }
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 24px; }
+  section{ padding:64px 0; position:relative; }
+  img,svg{ max-width:100%; }
+  button{ font-family:inherit; cursor:pointer; }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+  }
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(255,253,247,0.85);
+    backdrop-filter:blur(8px);
+    border-bottom:2px solid rgba(27,152,224,0.15);
+  }
+  .topbar-inner{
+    max-width:1080px; margin:0 auto; padding:12px 24px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .brand{ display:flex; align-items:center; gap:8px; font-family:'Baloo 2'; font-weight:800; font-size:1.25rem; color:var(--brand-dark); }
+  .brand .drop{ font-size:1.4rem; }
+  .topnav{ display:flex; gap:6px; flex-wrap:wrap; }
+  .topnav a{
+    text-decoration:none; color:var(--ink-soft); font-weight:700; font-size:0.85rem;
+    padding:8px 12px; border-radius:999px; transition:all .2s;
+  }
+  .topnav a:hover, .topnav a:focus-visible{ background:var(--brand); color:white; outline:none; }
+
+  /* ---------- HERO ---------- */
+  .hero{ padding-top:56px; padding-bottom:20px; }
+  .hero-inner{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:40px; align-items:center; }
+  @media (max-width:820px){ .hero-inner{ grid-template-columns:1fr; } }
+  .hero h1{ font-size:clamp(2.2rem,5vw,3.4rem); line-height:1.05; margin:10px 0 16px; color:var(--ink); }
+  .hero h1 span{ color:var(--brand); }
+  .hero p{ font-size:1.08rem; color:var(--ink-soft); max-width:46ch; line-height:1.55; }
+  .cta-row{ display:flex; gap:12px; margin-top:24px; flex-wrap:wrap; }
+  .btn{
+    border:none; border-radius:999px; padding:14px 26px; font-weight:800; font-size:0.95rem;
+    display:inline-flex; align-items:center; gap:8px; box-shadow:var(--shadow); transition:transform .15s ease;
+  }
+  .btn:active{ transform:scale(0.96); }
+  .btn-primary{ background:var(--coral); color:white; }
+  .btn-primary:hover{ background:var(--coral-dark); }
+  .btn-ghost{ background:white; color:var(--brand-dark); border:2px solid var(--brand); }
+  .btn-ghost:hover{ background:var(--brand); color:white; }
+
+  /* loop hero graphic */
+  .loop-stage{ position:relative; width:100%; aspect-ratio:1/1; max-width:420px; margin:0 auto; }
+  .loop-ring{
+    position:absolute; inset:12%;
+    border-radius:50%;
+    border:4px dashed rgba(27,152,224,0.4);
+  }
+  .loop-node{
+    position:absolute; width:78px; height:78px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    font-size:1.6rem; box-shadow:var(--shadow); border:3px solid white;
+    transform:translate(-50%,-50%);
+  }
+  .loop-node span.lbl{ font-family:'Space Mono'; font-size:0.55rem; font-weight:700; margin-top:1px; text-transform:uppercase; }
+  .loop-node.evap{ top:6%; left:50%; background:var(--evap-soft); color:#8a5a00; }
+  .loop-node.cond{ top:50%; left:94%; background:var(--cond-soft); color:#0d6d63; }
+  .loop-node.precip{ top:94%; left:50%; background:var(--precip-soft); color:#2c3aa0; }
+  .loop-node.collect{ top:50%; left:6%; background:var(--collect-soft); color:#215f36; }
+  .droplet{
+    position:absolute; inset:12%;
+    animation:travel 10s linear infinite;
+  }
+  .droplet-face{ font-size:1.6rem; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.15)); }
+  @keyframes travel{
+    0%{ offset-distance:0%; }
+    100%{ offset-distance:100%; }
+  }
+  .droplet{ offset-path:circle(50% at 50% 50%); }
+
+  /* ---------- CT PILLARS ---------- */
+  .pillars-head{ text-align:center; max-width:640px; margin:0 auto 34px; }
+  .pillars-head h2{ font-size:clamp(1.6rem,3.4vw,2.2rem); margin:8px 0 10px; }
+  .pillars-head p{ color:var(--ink-soft); line-height:1.55; }
+  .pillars{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  @media (max-width:820px){ .pillars{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:480px){ .pillars{ grid-template-columns:1fr; } }
+  .pillar{
+    background:var(--cream); border-radius:var(--radius-md); padding:22px 18px;
+    box-shadow:var(--shadow); text-decoration:none; color:var(--ink);
+    display:block; transition:transform .18s ease;
+    border-top:5px solid var(--pillar-color,var(--brand));
+  }
+  .pillar:hover{ transform:translateY(-5px); }
+  .pillar .ico{ font-size:1.9rem; }
+  .pillar h3{ font-size:1.05rem; margin:10px 0 6px; }
+  .pillar p{ font-size:0.86rem; color:var(--ink-soft); line-height:1.4; margin:0; }
+
+  /* ---------- SECTION HEADERS ---------- */
+  .sec-head{ margin-bottom:30px; }
+  .sec-head .eyebrow{ display:block; margin-bottom:6px; }
+  .sec-head h2{ font-size:clamp(1.7rem,3.6vw,2.3rem); margin:0 0 10px; }
+  .sec-head p{ color:var(--ink-soft); max-width:64ch; line-height:1.55; }
+
+  /* ---------- EXPLORER (decomposition) ---------- */
+  .explorer{
+    background:white; border-radius:var(--radius-lg); box-shadow:var(--shadow);
+    padding:36px; display:grid; grid-template-columns:1fr 1fr; gap:30px; align-items:center;
+  }
+  @media (max-width:820px){ .explorer{ grid-template-columns:1fr; padding:24px; } }
+  .diagram{ position:relative; width:100%; aspect-ratio:1/1; max-width:380px; margin:0 auto; }
+  .diagram .ring{ position:absolute; inset:14%; border-radius:50%; border:4px solid #eef4f8; }
+  .diagram .center-label{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; flex-direction:column; padding:30%;
+  }
+  .diagram .center-label b{ font-family:'Baloo 2'; font-size:1rem; color:var(--ink-soft); }
+  .dnode{
+    position:absolute; width:92px; height:92px; border-radius:50%;
+    transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border:none; box-shadow:0 6px 16px rgba(0,0,0,0.12); font-family:'Nunito'; font-weight:800;
+    transition:transform .18s ease, box-shadow .18s ease; color:var(--ink);
+  }
+  .dnode .e{ font-size:1.7rem; }
+  .dnode .t{ font-size:0.68rem; margin-top:2px; }
+  .dnode:hover, .dnode:focus-visible{ transform:translate(-50%,-50%) scale(1.08); outline:none; }
+  .dnode.active{ box-shadow:0 0 0 4px white, 0 0 0 7px var(--dcolor), 0 10px 20px rgba(0,0,0,0.18); }
+  .dnode.n1{ top:8%; left:50%; background:var(--evap-soft); --dcolor:var(--evap); }
+  .dnode.n2{ top:50%; left:92%; background:var(--cond-soft); --dcolor:var(--cond); }
+  .dnode.n3{ top:92%; left:50%; background:var(--precip-soft); --dcolor:var(--precip); }
+  .dnode.n4{ top:50%; left:8%; background:var(--collect-soft); --dcolor:var(--collect); }
+
+  .detail-card{ min-height:280px; }
+  .stage-tag{
+    display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px;
+    font-family:'Space Mono'; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+    background:var(--stage-soft); color:var(--stage-dark);
+  }
+  .detail-card h3{ font-size:1.5rem; margin:12px 0 8px; }
+  .detail-card p{ line-height:1.6; color:var(--ink-soft); margin:0 0 12px; }
+  .fun-fact{
+    background:#fff9ec; border:1.5px dashed #ffcf6b; border-radius:14px; padding:12px 14px; font-size:0.88rem;
+    color:#7a5300;
+  }
+  .stage-hint{ font-size:0.85rem; color:var(--ink-soft); margin-top:16px; }
+
+  /* ---------- PATTERN SECTION ---------- */
+  .pattern-card{
+    background:linear-gradient(135deg,#eefbfb,#ffffff);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:36px;
+  }
+  .seq{
+    display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;
+    font-size:2rem; margin:26px 0; padding:18px; background:white; border-radius:16px;
+  }
+  .seq .qmark{
+    width:56px; height:56px; border-radius:14px; border:3px dashed var(--coral);
+    display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:var(--coral); font-weight:800;
+  }
+  .pattern-options{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .opt-btn{
+    background:white; border:2.5px solid #e2ecf2; border-radius:16px; padding:14px 20px; font-size:1.6rem;
+    box-shadow:0 4px 10px rgba(0,0,0,0.06); transition:all .15s;
+  }
+  .opt-btn:hover{ border-color:var(--brand); }
+  .opt-btn.correct{ border-color:var(--collect); background:var(--collect-soft); }
+  .opt-btn.wrong{ border-color:var(--coral); background:#ffe9e9; }
+  .pattern-feedback{
+    text-align:center; margin-top:18px; font-weight:700; min-height:1.4em; font-size:0.95rem;
+  }
+  .pattern-explain{
+    margin-top:20px; background:white; border-radius:14px; padding:16px 20px; font-size:0.92rem;
+    color:var(--ink-soft); line-height:1.55; border-left:5px solid var(--brand); display:none;
+  }
+
+  /* ---------- ALGORITHM BUILDER ---------- */
+  .algo-card{
+    background:white; border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:36px;
+  }
+  .algo-frame{ display:flex; flex-direction:column; gap:10px; }
+  .algo-endpoint{
+    font-family:'Space Mono'; font-size:0.78rem; font-weight:700; text-align:center;
+    background:var(--ink); color:white; border-radius:12px; padding:10px; letter-spacing:0.05em;
+  }
+  .algo-list{ display:flex; flex-direction:column; gap:10px; list-style:none; margin:0; padding:0; }
+  .algo-card-item{
+    display:flex; align-items:center; gap:14px; background:var(--stage-soft,#f3f6f8);
+    border:2px solid transparent; border-radius:14px; padding:14px 16px; font-weight:700;
+    transition:all .15s; user-select:none;
+  }
+  .algo-card-item .num{
+    width:30px; height:30px; border-radius:50%; background:white; display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono'; font-size:0.85rem; flex-shrink:0; box-shadow:inset 0 0 0 2px rgba(0,0,0,0.08);
+  }
+  .algo-card-item .e{ font-size:1.4rem; }
+  .algo-card-item.selected{ border-color:var(--brand); box-shadow:0 0 0 3px rgba(27,152,224,0.2); }
+  .algo-controls{ display:flex; gap:12px; margin-top:20px; flex-wrap:wrap; align-items:center; }
+  .algo-msg{ font-weight:700; font-size:0.92rem; min-height:1.4em; }
+  .algo-msg.ok{ color:var(--collect); }
+  .algo-msg.bad{ color:var(--coral-dark); }
+  .algo-tip{ font-size:0.85rem; color:var(--ink-soft); margin-top:14px; }
+
+  /* ---------- ABSTRACTION ---------- */
+  .abstract-card{
+    background:linear-gradient(135deg,#fef4ec,#ffffff); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:36px;
+  }
+  .toggle-row{ display:flex; justify-content:center; margin-bottom:26px; }
+  .toggle{
+    display:inline-flex; background:white; border-radius:999px; padding:4px; box-shadow:var(--shadow); gap:4px;
+  }
+  .toggle button{
+    border:none; background:transparent; padding:10px 20px; border-radius:999px; font-weight:800; font-size:0.88rem; color:var(--ink-soft);
+  }
+  .toggle button.active{ background:var(--brand); color:white; }
+  .abstract-panels{ position:relative; min-height:220px; }
+  .abstract-panel{ display:none; }
+  .abstract-panel.active{ display:block; }
+  .abstract-panel.real p{ line-height:1.7; color:var(--ink-soft); background:white; padding:22px; border-radius:16px; font-size:0.94rem; }
+  .simple-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  @media (max-width:640px){ .simple-grid{ grid-template-columns:repeat(2,1fr); } }
+  .simple-item{
+    background:white; border-radius:14px; padding:18px 10px; text-align:center; box-shadow:var(--shadow);
+    border-bottom:5px solid var(--scolor);
+  }
+  .simple-item .e{ font-size:2rem; display:block; margin-bottom:6px; }
+  .simple-item .t{ font-weight:800; font-size:0.85rem; }
+  .abstract-note{ margin-top:18px; font-size:0.9rem; color:var(--ink-soft); text-align:center; }
+
+  /* ---------- QUIZ ---------- */
+  .quiz-card{
+    background:var(--ink); color:white; border-radius:var(--radius-lg); box-shadow:var(--shadow);
+    padding:40px; position:relative; overflow:hidden;
+  }
+  .quiz-card::before{
+    content:""; position:absolute; width:280px; height:280px; border-radius:50%;
+    background:radial-gradient(circle,rgba(27,152,224,0.35),transparent 70%);
+    top:-100px; right:-100px;
+  }
+  .quiz-progress{ font-family:'Space Mono'; font-size:0.78rem; color:#9fd3f1; margin-bottom:10px; }
+  .quiz-q{ font-size:1.3rem; font-weight:800; margin-bottom:20px; font-family:'Baloo 2'; }
+  .quiz-opts{ display:grid; gap:10px; }
+  .quiz-opt{
+    text-align:left; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.15);
+    color:white; border-radius:12px; padding:14px 16px; font-weight:700; font-size:0.94rem;
+  }
+  .quiz-opt:hover{ background:rgba(255,255,255,0.16); }
+  .quiz-opt.correct{ background:rgba(61,163,93,0.4); border-color:var(--collect); }
+  .quiz-opt.wrong{ background:rgba(255,107,107,0.35); border-color:var(--coral); }
+  .quiz-footer{ display:flex; justify-content:space-between; align-items:center; margin-top:22px; }
+  .quiz-score{ font-family:'Space Mono'; font-size:0.85rem; color:#9fd3f1; }
+  .quiz-result{ text-align:center; }
+  .quiz-result .medal{ font-size:3.4rem; }
+  .quiz-result h3{ font-size:1.7rem; margin:10px 0 6px; }
+  .quiz-result p{ color:#c6dced; margin-bottom:20px; }
+
+  footer{ text-align:center; padding:40px 24px 60px; color:var(--ink-soft); font-size:0.85rem; }
+  footer b{ color:var(--brand-dark); }
+
+  .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="drop">💧</span> AquaLoop</div>
+    <nav class="topnav">
+      <a href="#think">CT Skills</a>
+      <a href="#decompose">Explore</a>
+      <a href="#pattern">Pattern</a>
+      <a href="#algorithm">Algorithm</a>
+      <a href="#abstraction">Abstraction</a>
+      <a href="#quiz">Quiz</a>
+    </nav>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <span class="eyebrow">Grade 5 · Science of Systems</span>
+      <h1>Water never stops <span>looping</span> — and neither do computers.</h1>
+      <p>Meet the water cycle the way a computer scientist would: break it into parts, spot the pattern, write the steps in order, and simplify the big picture. Splash the droplet needs your help to keep the loop running!</p>
+      <div class="cta-row">
+        <a href="#think" class="btn btn-primary">Start Exploring ↓</a>
+        <a href="#quiz" class="btn btn-ghost">Jump to the Quiz</a>
+      </div>
+    </div>
+    <div class="loop-stage" aria-hidden="true">
+      <div class="loop-ring"></div>
+      <div class="loop-node evap">☀️<span class="lbl">Evaporate</span></div>
+      <div class="loop-node cond">☁️<span class="lbl">Condense</span></div>
+      <div class="loop-node precip">🌧️<span class="lbl">Precipitate</span></div>
+      <div class="loop-node collect">🏞️<span class="lbl">Collect</span></div>
+      <div class="droplet"><div class="droplet-face">💧</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CT PILLARS -->
+<section id="think">
+  <div class="wrap">
+    <div class="pillars-head">
+      <span class="eyebrow">Your Toolkit</span>
+      <h2>Four ways of thinking, one big water loop</h2>
+      <p>These are the same thinking skills programmers use to solve problems — and you'll use every one of them to understand the water cycle.</p>
+    </div>
+    <div class="pillars">
+      <a href="#decompose" class="pillar" style="--pillar-color:var(--evap)">
+        <div class="ico">🧩</div>
+        <h3>Decomposition</h3>
+        <p>Break the water cycle into 4 smaller, easier-to-understand stages.</p>
+      </a>
+      <a href="#pattern" class="pillar" style="--pillar-color:var(--cond)">
+        <div class="ico">🔁</div>
+        <h3>Pattern Recognition</h3>
+        <p>Notice that the cycle repeats — just like a loop in a program.</p>
+      </a>
+      <a href="#algorithm" class="pillar" style="--pillar-color:var(--precip)">
+        <div class="ico">📋</div>
+        <h3>Algorithms</h3>
+        <p>Put the stages in the exact right order to make the cycle work.</p>
+      </a>
+      <a href="#abstraction" class="pillar" style="--pillar-color:var(--collect)">
+        <div class="ico">🔍</div>
+        <h3>Abstraction</h3>
+        <p>Hide extra detail and focus on the big idea with a simple model.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- DECOMPOSITION / EXPLORER -->
+<section id="decompose">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Skill 1 · Decomposition</span>
+      <h2>Break the big loop into four stages</h2>
+      <p>Big problems are easier when you split them into smaller pieces. Tap each stop on the loop to learn what's happening to the water.</p>
+    </div>
+    <div class="explorer">
+      <div class="diagram">
+        <div class="ring"></div>
+        <button class="dnode n1" data-stage="evap"><span class="e">☀️</span><span class="t">Evaporation</span></button>
+        <button class="dnode n2" data-stage="cond"><span class="e">☁️</span><span class="t">Condensation</span></button>
+        <button class="dnode n3" data-stage="precip"><span class="e">🌧️</span><span class="t">Precipitation</span></button>
+        <button class="dnode n4" data-stage="collect"><span class="e">🏞️</span><span class="t">Collection</span></button>
+        <div class="center-label"><b>Tap a stop!</b></div>
+      </div>
+      <div class="detail-card" id="detailCard">
+        <span class="stage-tag" id="stageTag">Stage 1 of 4</span>
+        <h3 id="stageTitle">Evaporation</h3>
+        <p id="stageText">The sun heats up water in oceans, lakes and rivers. The heat energy turns liquid water into water vapor — an invisible gas — that rises into the sky.</p>
+        <div class="fun-fact" id="stageFact">🤓 Fun fact: Even puddles and wet laundry evaporate! Plants release water vapor too, in a process called <em>transpiration</em>.</div>
+        <p class="stage-hint">👆 Tap the other three stops to keep exploring.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PATTERN RECOGNITION -->
+<section id="pattern">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Skill 2 · Pattern Recognition</span>
+      <h2>Spot the pattern in the loop</h2>
+      <p>Programmers look for repeating patterns so they can write a <em>loop</em> instead of repeating the same code forever. Can you find the pattern below?</p>
+    </div>
+    <div class="pattern-card">
+      <div class="seq">
+        <span>☀️</span><span>☁️</span><span>🌧️</span><span>🏞️</span>
+        <span>☀️</span><span>☁️</span><span>🌧️</span><span>🏞️</span>
+        <div class="qmark" id="qmark">?</div>
+      </div>
+      <div class="pattern-options" id="patternOpts">
+        <button class="opt-btn" data-val="rain">🌧️</button>
+        <button class="opt-btn" data-val="sun">☀️</button>
+        <button class="opt-btn" data-val="river">🏞️</button>
+        <button class="opt-btn" data-val="snow">❄️</button>
+      </div>
+      <div class="pattern-feedback" id="patternFeedback"></div>
+      <div class="pattern-explain" id="patternExplain">
+        You found it! The symbols repeat every 4 steps: Sun → Cloud → Rain → River, then it starts again. In programming, we'd call this a <b>loop that repeats forever</b> — exactly how the real water cycle behaves. Nature doesn't stop at "Collection" — it goes straight back to "Evaporation" and runs again and again.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ALGORITHM BUILDER -->
+<section id="algorithm">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Skill 3 · Algorithms</span>
+      <h2>Build the water cycle algorithm</h2>
+      <p>An algorithm is a set of steps done in a specific order. Tap two cards to swap them until the water cycle steps are in the correct order, then press "Run Algorithm."</p>
+    </div>
+    <div class="algo-card">
+      <div class="algo-frame">
+        <div class="algo-endpoint">▶ START</div>
+        <ul class="algo-list" id="algoList"></ul>
+        <div class="algo-endpoint">↻ REPEAT FOREVER</div>
+      </div>
+      <div class="algo-controls">
+        <button class="btn btn-primary" id="runAlgo">▶ Run Algorithm</button>
+        <button class="btn btn-ghost" id="shuffleAlgo">🔀 Shuffle Again</button>
+        <span class="algo-msg" id="algoMsg"></span>
+      </div>
+      <p class="algo-tip">💡 Tip: tap one card, then tap another to swap their places.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ABSTRACTION -->
+<section id="abstraction">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Skill 4 · Abstraction</span>
+      <h2>Hide the details, keep the big idea</h2>
+      <p>The real water cycle is way more complex than 4 icons — but scientists (and programmers!) simplify it into a model so it's easier to understand and remember.</p>
+    </div>
+    <div class="abstract-card">
+      <div class="toggle-row">
+        <div class="toggle">
+          <button class="active" id="btnReal">🌍 Real World (Detailed)</button>
+          <button id="btnSimple">🧩 Simple Model</button>
+        </div>
+      </div>
+      <div class="abstract-panels">
+        <div class="abstract-panel real active" id="panelReal">
+          <p>In reality, evaporation speed depends on temperature, wind, humidity, and how much surface water is exposed to air. Water leaves oceans, lakes, rivers, damp soil, and even living things through transpiration and respiration. Clouds form at many different altitudes and temperatures, made of liquid droplets or ice crystals depending on conditions. Precipitation can fall as rain, snow, sleet, freezing rain, or hail, depending on the temperature of the air it passes through. Some water soaks deep underground into aquifers, some runs off into streams, and some is taken up by plant roots before ever reaching a river. It's a messy, tangled, constantly-moving system!</p>
+        </div>
+        <div class="abstract-panel simple" id="panelSimple">
+          <div class="simple-grid">
+            <div class="simple-item" style="--scolor:var(--evap)"><span class="e">☀️</span><span class="t">Evaporation</span></div>
+            <div class="simple-item" style="--scolor:var(--cond)"><span class="e">☁️</span><span class="t">Condensation</span></div>
+            <div class="simple-item" style="--scolor:var(--precip)"><span class="e">🌧️</span><span class="t">Precipitation</span></div>
+            <div class="simple-item" style="--scolor:var(--collect)"><span class="e">🏞️</span><span class="t">Collection</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="abstract-note">Both are "correct" — the simple model just hides details that aren't needed for a 5th grader to understand the big loop. That's abstraction!</p>
+    </div>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section id="quiz">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Final Challenge</span>
+      <h2>Prove you can think like a water-cycle computer scientist</h2>
+      <p>Five quick questions. Choose your answer and see how you did.</p>
+    </div>
+    <div class="quiz-card" id="quizCard"></div>
+  </div>
+</section>
+
+<footer>
+  Made with 💙 for young scientists &amp; computational thinkers. <b>AquaLoop</b> · Grade 5 IPAS
+</footer>
+
+<script>
+/* ===================== DATA ===================== */
+const stages = {
+  evap:{
+    idx:1, name:"Evaporation", icon:"☀️",
+    color:"var(--evap)", soft:"var(--evap-soft)", dark:"#8a5a00",
+    text:"The sun heats up water in oceans, lakes and rivers. The heat energy turns liquid water into water vapor — an invisible gas — that rises into the sky.",
+    fact:"🤓 Fun fact: Even puddles and wet laundry evaporate! Plants release water vapor too, in a process called <em>transpiration</em>."
+  },
+  cond:{
+    idx:2, name:"Condensation", icon:"☁️",
+    color:"var(--cond)", soft:"var(--cond-soft)", dark:"#0d6d63",
+    text:"As water vapor rises, the air gets colder. The vapor cools and turns back into tiny liquid droplets that cluster together, forming clouds.",
+    fact:"🤓 Fun fact: One fluffy cloud can hold millions of tiny water droplets — that's why clouds look solid but are actually made of floating drops!"
+  },
+  precip:{
+    idx:3, name:"Precipitation", icon:"🌧️",
+    color:"var(--precip)", soft:"var(--precip-soft)", dark:"#2c3aa0",
+    text:"When droplets inside a cloud combine and get too heavy for the air to hold up, they fall back to Earth as rain, snow, sleet, or hail.",
+    fact:"🤓 Fun fact: The type of precipitation depends on the temperature of the air it falls through — that's why the same cloud can drop rain or snow!"
+  },
+  collect:{
+    idx:4, name:"Collection", icon:"🏞️",
+    color:"var(--collect)", soft:"var(--collect-soft)", dark:"#215f36",
+    text:"Fallen water collects in oceans, rivers, lakes, and underground. Some soaks into soil, some flows back to the sea — ready to evaporate again and restart the loop!",
+    fact:"🤓 Fun fact: This step is also called 'runoff.' It's how rivers stay full even on days when it isn't raining."
+  }
+};
+
+/* ===================== DECOMPOSITION EXPLORER ===================== */
+const nodes = document.querySelectorAll('.dnode');
+const stageTag = document.getElementById('stageTag');
+const stageTitle = document.getElementById('stageTitle');
+const stageText = document.getElementById('stageText');
+const stageFact = document.getElementById('stageFact');
+
+function showStage(key){
+  const s = stages[key];
+  stageTag.textContent = `Stage ${s.idx} of 4`;
+  stageTag.style.setProperty('--stage-soft', s.soft);
+  stageTag.style.color = s.dark;
+  stageTag.style.background = s.soft;
+  stageTitle.textContent = s.name;
+  stageTitle.style.color = s.dark;
+  stageText.textContent = s.text;
+  stageFact.innerHTML = s.fact;
+  nodes.forEach(n => n.classList.toggle('active', n.dataset.stage === key));
+}
+nodes.forEach(n => n.addEventListener('click', () => showStage(n.dataset.stage)));
+showStage('evap');
+
+/* ===================== PATTERN RECOGNITION ===================== */
+const patternOpts = document.getElementById('patternOpts');
+const patternFeedback = document.getElementById('patternFeedback');
+const patternExplain = document.getElementById('patternExplain');
+let patternAnswered = false;
+
+patternOpts.addEventListener('click', (e) => {
+  const btn = e.target.closest('.opt-btn');
+  if(!btn || patternAnswered) return;
+  patternAnswered = true;
+  const correct = btn.dataset.val === 'sun';
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  if(correct){
+    patternFeedback.textContent = "🎉 Correct! The pattern loops back to Sun ☀️.";
+    patternFeedback.style.color = "#215f36";
+  } else {
+    patternFeedback.textContent = "Not quite — the pattern restarts at ☀️ Sun. That's ok, patterns take practice!";
+    patternFeedback.style.color = "#c0392b";
+    [...patternOpts.children].find(b => b.dataset.val === 'sun').classList.add('correct');
+  }
+  patternExplain.style.display = 'block';
+});
+
+/* ===================== ALGORITHM BUILDER ===================== */
+const order = ['evap','cond','precip','collect'];
+let current = [];
+let selectedIndex = null;
+const algoList = document.getElementById('algoList');
+const algoMsg = document.getElementById('algoMsg');
+
+function shuffleArr(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  // avoid accidentally-correct shuffle
+  if(JSON.stringify(a) === JSON.stringify(order)) return shuffleArr(arr);
+  return a;
+}
+
+function renderAlgo(){
+  algoList.innerHTML = '';
+  current.forEach((key, i) => {
+    const s = stages[key];
+    const li = document.createElement('li');
+    li.className = 'algo-card-item';
+    li.style.setProperty('--stage-soft', s.soft);
+    li.style.background = s.soft;
+    li.dataset.index = i;
+    li.innerHTML = `<span class="num">${i+1}</span><span class="e">${s.icon}</span><span>${s.name}</span>`;
+    li.addEventListener('click', () => onCardClick(i));
+    algoList.appendChild(li);
+  });
+  updateSelectedStyles();
+}
+
+function onCardClick(i){
+  if(selectedIndex === null){
+    selectedIndex = i;
+  } else if(selectedIndex === i){
+    selectedIndex = null;
+  } else {
+    [current[selectedIndex], current[i]] = [current[i], current[selectedIndex]];
+    selectedIndex = null;
+    renderAlgo();
+    algoMsg.textContent = '';
+    algoMsg.className = 'algo-msg';
+    return;
+  }
+  updateSelectedStyles();
+}
+
+function updateSelectedStyles(){
+  [...algoList.children].forEach((li, i) => {
+    li.classList.toggle('selected', i === selectedIndex);
+  });
+}
+
+document.getElementById('runAlgo').addEventListener('click', () => {
+  const correct = JSON.stringify(current) === JSON.stringify(order);
+  algoMsg.textContent = correct
+    ? "✅ Perfect sequence! The loop can run forever now."
+    : "❌ Not quite in order yet — keep swapping cards.";
+  algoMsg.className = 'algo-msg ' + (correct ? 'ok' : 'bad');
+});
+
+document.getElementById('shuffleAlgo').addEventListener('click', () => {
+  current = shuffleArr(order);
+  selectedIndex = null;
+  algoMsg.textContent = '';
+  algoMsg.className = 'algo-msg';
+  renderAlgo();
+});
+
+current = shuffleArr(order);
+renderAlgo();
+
+/* ===================== ABSTRACTION TOGGLE ===================== */
+const btnReal = document.getElementById('btnReal');
+const btnSimple = document.getElementById('btnSimple');
+const panelReal = document.getElementById('panelReal');
+const panelSimple = document.getElementById('panelSimple');
+
+btnReal.addEventListener('click', () => {
+  btnReal.classList.add('active'); btnSimple.classList.remove('active');
+  panelReal.classList.add('active'); panelSimple.classList.remove('active');
+});
+btnSimple.addEventListener('click', () => {
+  btnSimple.classList.add('active'); btnReal.classList.remove('active');
+  panelSimple.classList.add('active'); panelReal.classList.remove('active');
+});
+
+/* ===================== QUIZ ===================== */
+const quizData = [
+  { q:"What causes water to evaporate?", opts:["Wind blowing","The sun's heat","Gravity pulling down","Cold air"], correct:1 },
+  { q:"What are clouds actually made of?", opts:["Smoke","Cotton fluff","Tiny water droplets","Solid ice only"], correct:2 },
+  { q:"Splitting the water cycle into 4 stages is an example of which computational thinking skill?", opts:["Decomposition","Debugging","Recursion","Encryption"], correct:0 },
+  { q:"What happens during 'Collection'?", opts:["Water evaporates into the sky","Water falls as rain or snow","Water gathers in oceans, rivers and lakes","Water freezes into ice"], correct:2 },
+  { q:"Why is it called a water CYCLE?", opts:["It only happens once a year","It repeats over and over, like a loop","It's a type of bicycle","It only happens in winter"], correct:1 }
+];
+let qIndex = 0;
+let score = 0;
+const quizCard = document.getElementById('quizCard');
+
+function renderQuiz(){
+  if(qIndex >= quizData.length){
+    renderResult();
+    return;
+  }
+  const item = quizData[qIndex];
+  quizCard.innerHTML = `
+    <div class="quiz-progress">QUESTION ${qIndex+1} OF ${quizData.length}</div>
+    <div class="quiz-q">${item.q}</div>
+    <div class="quiz-opts" id="quizOpts"></div>
+    <div class="quiz-footer">
+      <span class="quiz-score">SCORE: ${score} / ${quizData.length}</span>
+    </div>
+  `;
+  const optsWrap = document.getElementById('quizOpts');
+  item.opts.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'quiz-opt';
+    b.textContent = opt;
+    b.addEventListener('click', () => answerQuiz(i));
+    optsWrap.appendChild(b);
+  });
+}
+
+function answerQuiz(i){
+  const item = quizData[qIndex];
+  const btns = document.querySelectorAll('#quizOpts .quiz-opt');
+  btns.forEach(b => b.disabled = true);
+  btns[item.correct].classList.add('correct');
+  if(i === item.correct){
+    score++;
+  } else {
+    btns[i].classList.add('wrong');
+  }
+  setTimeout(() => {
+    qIndex++;
+    renderQuiz();
+  }, 900);
+}
+
+function renderResult(){
+  let medal = "🥉", msg = "Nice try! Explore the loop again and give it another go.";
+  if(score >= 5){ medal="🥇"; msg="Perfect score! You're officially thinking like a water-cycle computer scientist."; }
+  else if(score >= 3){ medal="🥈"; msg="Great job! You've got a solid handle on the loop."; }
+  quizCard.innerHTML = `
+    <div class="quiz-result">
+      <div class="medal">${medal}</div>
+      <h3>${score} / ${quizData.length} correct</h3>
+      <p>${msg}</p>
+      <button class="btn btn-primary" id="retryQuiz">🔁 Try Again</button>
+    </div>
+  `;
+  document.getElementById('retryQuiz').addEventListener('click', () => {
+    qIndex = 0; score = 0; renderQuiz();
+  });
+}
+
+renderQuiz();
+</script>
+</body>
+</html>
