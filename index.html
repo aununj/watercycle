@@ -177,6 +177,26 @@
   .dnode.n3{ top:92%; left:50%; background:var(--precip-soft); --dcolor:var(--precip); }
   .dnode.n4{ top:50%; left:8%; background:var(--collect-soft); --dcolor:var(--collect); }
 
+  /* CSS-only stage switching (no JS required) */
+  .detail-wrap{ position:relative; }
+  .detail-wrap .detail-card{ display:none; }
+  .detail-wrap .panel-default{ display:block; }
+  #r-evap:checked ~ .explorer .panel-default,
+  #r-cond:checked ~ .explorer .panel-default,
+  #r-precip:checked ~ .explorer .panel-default,
+  #r-collect:checked ~ .explorer .panel-default{ display:none; }
+  #r-evap:checked ~ .explorer .panel-evap{ display:block; }
+  #r-cond:checked ~ .explorer .panel-cond{ display:block; }
+  #r-precip:checked ~ .explorer .panel-precip{ display:block; }
+  #r-collect:checked ~ .explorer .panel-collect{ display:block; }
+  #r-evap:checked ~ .explorer .n1,
+  #r-cond:checked ~ .explorer .n2,
+  #r-precip:checked ~ .explorer .n3,
+  #r-collect:checked ~ .explorer .n4{
+    box-shadow:0 0 0 4px white, 0 0 0 7px var(--dcolor), 0 10px 20px rgba(0,0,0,0.18);
+    transform:translate(-50%,-50%) scale(1.08);
+  }
+
   .detail-card{ min-height:280px; }
   .stage-tag{
     display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px;
@@ -395,21 +415,61 @@
       <h2>Break the big loop into four stages</h2>
       <p>Big problems are easier when you split them into smaller pieces. Tap each stop on the loop to learn what's happening to the water.</p>
     </div>
+
+    <input type="radio" name="stage" id="r-evap" class="stage-radio visually-hidden">
+    <input type="radio" name="stage" id="r-cond" class="stage-radio visually-hidden">
+    <input type="radio" name="stage" id="r-precip" class="stage-radio visually-hidden">
+    <input type="radio" name="stage" id="r-collect" class="stage-radio visually-hidden">
+
     <div class="explorer">
       <div class="diagram">
         <div class="ring"></div>
-        <button class="dnode n1" data-stage="evap"><span class="e">☀️</span><span class="t">Evaporation</span></button>
-        <button class="dnode n2" data-stage="cond"><span class="e">☁️</span><span class="t">Condensation</span></button>
-        <button class="dnode n3" data-stage="precip"><span class="e">🌧️</span><span class="t">Precipitation</span></button>
-        <button class="dnode n4" data-stage="collect"><span class="e">🏞️</span><span class="t">Collection</span></button>
+        <label class="dnode n1" for="r-evap"><span class="e">☀️</span><span class="t">Evaporation</span></label>
+        <label class="dnode n2" for="r-cond"><span class="e">☁️</span><span class="t">Condensation</span></label>
+        <label class="dnode n3" for="r-precip"><span class="e">🌧️</span><span class="t">Precipitation</span></label>
+        <label class="dnode n4" for="r-collect"><span class="e">🏞️</span><span class="t">Collection</span></label>
         <div class="center-label"><b>Tap a stop!</b></div>
       </div>
-      <div class="detail-card" id="detailCard">
-        <span class="stage-tag" id="stageTag" style="background:#eef4f8;color:var(--ink-soft);">Waiting…</span>
-        <h3 id="stageTitle">Tap a stop on the loop</h3>
-        <p id="stageText">Choose Evaporation, Condensation, Precipitation, or Collection on the diagram to see what's happening to the water at that stage.</p>
-        <div class="fun-fact" id="stageFact" style="display:none;"></div>
-        <p class="stage-hint">👆 Tap any of the four stops to begin exploring.</p>
+
+      <div class="detail-wrap">
+        <div class="detail-card panel-default">
+          <span class="stage-tag" style="background:#eef4f8;color:var(--ink-soft);">Waiting…</span>
+          <h3>Tap a stop on the loop</h3>
+          <p>Choose Evaporation, Condensation, Precipitation, or Collection on the diagram to see what's happening to the water at that stage.</p>
+          <p class="stage-hint">👆 Tap any of the four stops to begin exploring.</p>
+        </div>
+
+        <div class="detail-card panel-evap">
+          <span class="stage-tag" style="background:var(--evap-soft);color:#8a5a00;">Stage 1 of 4</span>
+          <h3 style="color:#8a5a00;">Evaporation</h3>
+          <p>The sun heats up water in oceans, lakes and rivers. The heat energy turns liquid water into water vapor — an invisible gas — that rises into the sky.</p>
+          <div class="fun-fact">🤓 Fun fact: Even puddles and wet laundry evaporate! Plants release water vapor too, in a process called <em>transpiration</em>.</div>
+          <p class="stage-hint">👆 Tap the other three stops to keep exploring.</p>
+        </div>
+
+        <div class="detail-card panel-cond">
+          <span class="stage-tag" style="background:var(--cond-soft);color:#0d6d63;">Stage 2 of 4</span>
+          <h3 style="color:#0d6d63;">Condensation</h3>
+          <p>As water vapor rises, the air gets colder. The vapor cools and turns back into tiny liquid droplets that cluster together, forming clouds.</p>
+          <div class="fun-fact">🤓 Fun fact: One fluffy cloud can hold millions of tiny water droplets — that's why clouds look solid but are actually made of floating drops!</div>
+          <p class="stage-hint">👆 Tap the other three stops to keep exploring.</p>
+        </div>
+
+        <div class="detail-card panel-precip">
+          <span class="stage-tag" style="background:var(--precip-soft);color:#2c3aa0;">Stage 3 of 4</span>
+          <h3 style="color:#2c3aa0;">Precipitation</h3>
+          <p>When droplets inside a cloud combine and get too heavy for the air to hold up, they fall back to Earth as rain, snow, sleet, or hail.</p>
+          <div class="fun-fact">🤓 Fun fact: The type of precipitation depends on the temperature of the air it falls through — that's why the same cloud can drop rain or snow!</div>
+          <p class="stage-hint">👆 Tap the other three stops to keep exploring.</p>
+        </div>
+
+        <div class="detail-card panel-collect">
+          <span class="stage-tag" style="background:var(--collect-soft);color:#215f36;">Stage 4 of 4</span>
+          <h3 style="color:#215f36;">Collection</h3>
+          <p>Fallen water collects in oceans, rivers, lakes, and underground. Some soaks into soil, some flows back to the sea — ready to evaporate again and restart the loop!</p>
+          <div class="fun-fact">🤓 Fun fact: This step is also called 'runoff.' It's how rivers stay full even on days when it isn't raining.</div>
+          <p class="stage-hint">👆 Tap the other three stops to keep exploring.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -529,28 +589,9 @@ const stages = {
   }
 };
 
-/* ===================== DECOMPOSITION EXPLORER ===================== */
-const nodes = document.querySelectorAll('.dnode');
-const stageTag = document.getElementById('stageTag');
-const stageTitle = document.getElementById('stageTitle');
-const stageText = document.getElementById('stageText');
-const stageFact = document.getElementById('stageFact');
-
-function showStage(key){
-  const s = stages[key];
-  stageTag.textContent = `Stage ${s.idx} of 4`;
-  stageTag.style.setProperty('--stage-soft', s.soft);
-  stageTag.style.color = s.dark;
-  stageTag.style.background = s.soft;
-  stageTitle.textContent = s.name;
-  stageTitle.style.color = s.dark;
-  stageText.textContent = s.text;
-  stageFact.style.display = 'block';
-  stageFact.innerHTML = s.fact;
-  nodes.forEach(n => n.classList.toggle('active', n.dataset.stage === key));
-}
-nodes.forEach(n => n.addEventListener('click', () => showStage(n.dataset.stage)));
-/* No stage is shown until the learner taps one — see the neutral "Waiting…" state in the HTML. */
+/* Skill 1 (Decomposition) no longer needs JavaScript — it's driven purely by
+   CSS radio inputs + :checked sibling selectors, so it keeps working even in
+   contexts that restrict script execution (e.g. some published/shared views). */
 
 /* ===================== PATTERN RECOGNITION ===================== */
 const patternData = [
